@@ -56,6 +56,9 @@ function iface_up() {
   ip netns exec $VPN_NAME ip route add default via $VPN_NETWORK_ADDR_GATEWAY
 
   # Enable IP-forwarding
+  if [[ $(cat /proc/sys/net/ipv4/ip_forward) -eq 1 ]] ; then
+    touch /tmp/script-vpn-single-application-sdgjhsdsoguijencmyworf.lock
+  fi
   echo 1 > /proc/sys/net/ipv4/ip_forward
 
   # Flush forward rules, policy DROP by default.
@@ -90,7 +93,11 @@ function iface_down() {
     rm -rf /etc/netns/$VPN_NAME
   fi
 
-  echo 0 > /proc/sys/net/ipv4/ip_forward
+  if [[ -f /tmp/script-vpn-single-application-sdgjhsdsoguijencmyworf.lock ]] ; then
+    rm -f /tmp/script-vpn-single-application-sdgjhsdsoguijencmyworf.lock
+  else
+    echo 0 > /proc/sys/net/ipv4/ip_forward
+  fi
 
   iptables -t nat -D POSTROUTING -s "${VPN_NETWORK_BASE}${VPN_NETWORK_SUFFIX}" -o $VPN_INTERFACE_CONNECT -j MASQUERADE
 
